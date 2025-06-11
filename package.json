@@ -7,9 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "node dist/closeAPIDataFetch.js",
-    "fetch": "npx ts-node closeAPIDataFetch.ts",
-    "export": "npx ts-node closeSheetExport.ts",
-    "scheduler": "npx ts-node scheduler.ts",
+    "fetch": "npx ts-node src/closeAPIDataFetch.ts",
+    "export": "npx ts-node src/closeSheetExport.ts",
+    "scheduler": "npx ts-node src/scheduler.ts",
     "scheduler:prod": "node dist/scheduler.js"
   },
   "keywords": [],
