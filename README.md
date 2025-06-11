@@ -1,6 +1,6 @@
 # Close Sheet Integration
 
-This project exports data from Close.com API to Google Sheets using a service account for authentication.
+This project exports data from Close.com API to Google Sheets using a service account for authentication. It includes an automated scheduler that can run exports at specified intervals.
 
 ## Features
 
@@ -9,16 +9,18 @@ This project exports data from Close.com API to Google Sheets using a service ac
 - Exports to Google Sheets with proper formatting
 - Handles opportunities in a separate sheet
 - Auto-resizes columns and applies formatting
-- No interactive authentication required
+- Automated scheduling (runs daily at 6:00 AM BST)
+- Environment-based configuration
+- Secure credential handling
 
 ## Setup
 
 1. Install dependencies:
-   ```
+   ```bash
    npm install
    ```
 
-2. Create a Google Cloud Service Account (if not already done):
+2. Create a Google Cloud Service Account:
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Create a new project (or select an existing one)
    - Enable the Google Sheets API
@@ -27,43 +29,111 @@ This project exports data from Close.com API to Google Sheets using a service ac
    - Give it a name and description
    - Grant the "Editor" role for Google Sheets
    - Create a key (JSON type) and download it
-   - Save the key file as `service-account-key.json` in the project root
+   - Save the key file as `service-account-key.json` in the `creds` directory
 
-3. Configure API Keys:
-   - The Close.com API key is already configured in the code
-   - If you need to update it, edit the `CLOSE_API_KEY` constant in `closeSheetExport.ts`
+3. Set up environment variables:
+   - Copy `.env.example` to `.env`
+   - Fill in your actual values:
+     ```env
+     # Close.com API Configuration
+     CLOSE_API_KEY=your_close_api_key_here
+
+     # Google Sheets Configuration
+     GOOGLE_SHEET_ID=your_sheet_id_here
+     GOOGLE_SERVICE_ACCOUNT_PATH=creds/service-account-key.json
+
+     # Email Configuration
+     ADMIN_EMAIL=your_email@example.com
+
+     # Source Field Configuration
+     SOURCE_FIELD_ID=your_source_field_id_here
+     ```
 
 ## Usage
 
-### First Run
+### Manual Export
 
-The first time you run the export, it will create a new Google Sheet:
+Run a one-time export:
 
-```
+```bash
 npm run export
 ```
 
 This will:
 1. Fetch leads from Close.com
-2. Create a new Google Sheet with two tabs: "Leads" and "Opportunities"
+2. Create a new Google Sheet (if no sheet ID is configured)
 3. Export the data to the sheets
 4. Apply formatting for better readability
 5. Output the Google Sheet URL in the console
 
-Copy the spreadsheet ID from the console output and update the `DEFAULT_SPREADSHEET_ID` in `sheetIntegration.ts` for future use.
+### Automated Scheduler
 
-### Subsequent Runs
+The scheduler runs the export automatically at 6:00 AM BST every day.
 
-After updating the spreadsheet ID:
-
+For development/testing:
+```bash
+npm run scheduler
 ```
-npm run export
+
+For production:
+```bash
+# First build the TypeScript files
+npm run build
+
+# Then run the production scheduler
+npm run scheduler:prod
 ```
 
-This will:
-1. Fetch leads from Close.com
-2. Update the existing Google Sheet with the latest data
-3. Apply formatting
+## Deployment
+
+### Local Development
+1. Set up environment variables in `.env`
+2. Run the scheduler in development mode:
+   ```bash
+   npm run scheduler
+   ```
+
+### AWS EC2 Deployment
+1. Install Node.js and PM2:
+   ```bash
+   npm install -g pm2
+   ```
+
+2. Set up the application:
+   ```bash
+   # Clone and install dependencies
+   git clone <repository-url>
+   cd CloseSheetIntegration
+   npm install
+
+   # Build TypeScript files
+   npm run build
+
+   # Start with PM2
+   pm2 start dist/scheduler.js --name "close-sheet-scheduler"
+   pm2 save
+   pm2 startup
+   ```
+
+### AWS Lambda Deployment
+1. Create a Lambda function
+2. Set up an EventBridge (CloudWatch Events) rule:
+   - Cron expression: `0 6 * * ? *`
+   - Target: Your Lambda function
+
+### Docker Deployment
+1. Build the Docker image:
+   ```bash
+   docker build -t close-sheet-integration .
+   ```
+
+2. Run the container:
+   ```bash
+   docker run -d \
+     --name close-sheet-scheduler \
+     --env-file .env \
+     close-sheet-integration
+   ```
 
 ## Sheet Structure
 
@@ -105,17 +175,63 @@ Contains one row per opportunity with columns:
 
 ## Development
 
-- Build the TypeScript files:
-  ```
+### Available Scripts
+
+- Build TypeScript files:
+  ```bash
   npm run build
   ```
 
-- Fetch data without exporting to sheet:
-  ```
+- Fetch data without exporting:
+  ```bash
   npm run fetch
   ```
 
-- Export to sheet:
+- Run manual export:
+  ```bash
+  npm run export
   ```
+
+- Run scheduler (development):
+  ```bash
+  npm run scheduler
+  ```
+
+- Run scheduler (production):
+  ```bash
+  npm run scheduler:prod
+  ```
+
+### Security Notes
+
+- Never commit the `.env` file or the `creds` directory to version control
+- Keep your service account key secure
+- Regularly rotate API keys and credentials
+- Monitor the scheduler logs for any issues
+
+## Troubleshooting
+
+1. If the scheduler stops:
+   - Check the logs: `pm2 logs close-sheet-scheduler`
+   - Restart the scheduler: `pm2 restart close-sheet-scheduler`
+
+2. If exports fail:
+   - Verify environment variables are set correctly
+   - Check API key permissions
+   - Ensure Google Service Account has proper access
+   - Review the application logs
+
+3. If no leads are returned:
+   - Verify the SOURCE_FIELD_ID in .env
+   - Check if leads exist with the specified source
+   - Confirm API key has proper permissions
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request 
   npm run export
   ``` 
